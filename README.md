@@ -41,6 +41,46 @@ php artisan boost:install
 
 Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
 
+## Versionamento de Stored Procedures / Functions
+
+O projeto usa um mecanismo próprio, inspirado no Flyway, para versionar
+stored procedures e functions do PostgreSQL de forma independente das
+migrations do Laravel (que cuidam apenas de estrutura de tabelas).
+
+- Os arquivos ficam em `database/procedures/`, seguindo o padrão de nome
+  `V{numero com 3 dígitos}__{acao}_{descricao}.sql`, por exemplo
+  `V001__create_proc_hello_world.sql`.
+- Cada arquivo aplicado fica registrado na tabela `schema_procedures`
+  (nome, versão, checksum do conteúdo, data e usuário de aplicação).
+- **Um arquivo já aplicado nunca deve ser editado.** Se o conteúdo de uma
+  versão já aplicada mudar, `procedures:migrate` detecta a divergência de
+  checksum, recusa aplicar e orienta a criar uma nova versão.
+
+### Como criar uma nova versão
+
+1. Crie um novo arquivo em `database/procedures/`, com o próximo número de
+   versão, por exemplo `V002__alter_proc_hello_world.sql`.
+2. Escreva o SQL (CREATE OR REPLACE FUNCTION, CREATE PROCEDURE, etc.).
+3. Aplique localmente:
+
+   ```bash
+   sail artisan procedures:migrate
+   ```
+
+4. Confira o que está aplicado/pendente:
+
+   ```bash
+   sail artisan procedures:status
+   ```
+
+### Homologação / Produção
+
+Nesses ambientes, `php artisan procedures:migrate` deve ser executado como
+parte do processo de deploy, do mesmo jeito que se roda `php artisan
+migrate`. Como o comando é idempotente (só aplica o que ainda não foi
+aplicado, e recusa alterações silenciosas em versões antigas), é seguro
+rodá-lo a cada deploy.
+
 ## Contributing
 
 Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
